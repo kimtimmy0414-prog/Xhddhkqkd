@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>접속 기록 중...</title>
+  <!-- ua-parser-js CDN (기기 정보용) -->
+  <script src="https://cdn.jsdelivr.net/npm/ua-parser-js@1.0.37/dist/ua-parser.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #f0f2f5;
+      font-family: sans-serif;
+    }
+    .container {
+      text-align: center;
+      background: white;
+      padding: 60px 50px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      max-width: 380px;
+    }
+    h1 { color: #5865F2; margin-bottom: 20px; font-size: 2.2em; }
+    #status {
+      padding: 18px;
+      border-radius: 12px;
+      font-size: 1.15em;
+      min-height: 80px;
+    }
+    .success { background: #d4edda; color: #155724; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>어서오세요!</h1>
+    <p>잠시만 기다려주세요...</p>
+    <div id="status">접속 정보를 기록 중입니다...</div>
+  </div>
+
+  <script>
+    window.addEventListener('load', async () => {
+      const status = document.getElementById('status');
+
+      try {
+        // 1. IP 주소 가져오기
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        const { ip } = await ipRes.json();
+
+        // 2. 기기 정보 파싱
+        const parser = new UAParser();
+        const result = parser.getResult();
+        const device = `${result.device.vendor || 'Unknown'} ${result.device.model || 'Unknown'} (${result.os.name || 'Unknown'})`;
+
+        const now = new Date().toISOString();
+
+        // 3. Discord webhook으로 전송
+        const payload = {
+          embeds: [{
+            title: "새 접속",
+            color: 0x5865F2,
+            fields: [
+              { name: "IP 주소", value: `\`${ip}\``, inline: true },
+              { name: "기기 정보", value: device || '알 수 없음', inline: false },
+              { name: "접속 시간", value: now, inline: false }
+            ],
+            footer: { text: "Busan" },
+            timestamp: now
+          }]
+        };
+
+        // ★ 새로 만든 Discord 웹훅 URL 여기에 넣으세요 ★
+        // (기존에 공유된 건 위험하니 무조건 새로 생성하세요!)
+        const WEBHOOK_URL = "https://discord.com/api/webhooks/여기_새_ID/여기_새_TOKEN";
+
+        await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          mode: 'no-cors',  // Discord CORS 문제 때문에 필수!!
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        status.innerHTML = "기록 완료 ✓<br>IP와 기기 정보가 Discord에 저장되었습니다.";
+        status.classList.add('success');
+
+      } catch (err) {
+        console.error('에러:', err);
+        status.innerHTML = "기록에 실패했습니다 ㅠㅠ<br>콘솔(F12) 확인해주세요.";
+      }
+    });
+  </script>
+
+</body>
+</html>
